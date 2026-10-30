@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="sl" data-resolution="portrait">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1080, height=1920" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@800;900&family=Poppins:wght@700&family=Inter:wght@800&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; }
+  #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+  #bg { position: absolute; inset: 0; width: 1080px; height: 1920px; object-fit: cover; transform-origin: 50% 40%; }
+  #shade { position: absolute; left: 0; right: 0; bottom: 0; height: 900px; background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,.45)); }
+  /* IG reel UI covers about the bottom 20% and the right edge; captions sit in the lower-middle band */
+  #stage { position: absolute; left: 70px; right: 130px; top: __TOP__px; height: 420px; display: flex; align-items: center; justify-content: center; }
+  .group { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; text-align: center; }
+  .line { display: flex; flex-wrap: nowrap; justify-content: center; gap: 0.28em; white-space: nowrap; }
+  .w { display: inline-block; }
+
+  /* --- klasika: white bold, black outline, whole phrase --- */
+  .s-klasika .group { font: 900 78px/1.12 "Montserrat", Arial, sans-serif; color: #fff;
+    /* outline as a 16-step shadow ring: -webkit-text-stroke + paint-order does not draw outside the glyph in the render */
+    text-shadow: 6.0px 0.0px 0 #000, 5.5px 2.3px 0 #000, 4.2px 4.2px 0 #000, 2.3px 5.5px 0 #000, 0.0px 6.0px 0 #000, -2.3px 5.5px 0 #000, -4.2px 4.2px 0 #000, -5.5px 2.3px 0 #000, -6.0px 0.0px 0 #000, -5.5px -2.3px 0 #000, -4.2px -4.2px 0 #000, -2.3px -5.5px 0 #000, -0.0px -6.0px 0 #000, 2.3px -5.5px 0 #000, 4.2px -4.2px 0 #000, 5.5px -2.3px 0 #000, 0 8px 20px rgba(0,0,0,.55); }
+
+  /* --- pill: light pill, words darken as spoken --- */
+  .s-pill .group { font: 700 70px/1.16 "Poppins", Arial, sans-serif; }
+  .s-pill .pill { background: #f2f0ee; border-radius: 26px; padding: 16px 40px 20px; box-shadow: 0 6px 22px rgba(0,0,0,.25); }
+  .s-pill .w { color: #b3b0ad; }
+
+  /* --- highlight: uppercase, active word gets a coloured box --- */
+  .s-highlight .group { font: 900 84px/1.2 "Montserrat", Arial, sans-serif; color: #fff; text-transform: uppercase;
+    text-shadow: 0 6px 18px rgba(0,0,0,.55); }
+  .s-highlight .line { gap: 0.02em; }
+  .s-highlight .w { padding: 2px 12px 8px; border-radius: 12px; }
+
+  /* --- pop: 1-3 big words, active word in accent colour --- */
+  .s-pop .group { font: 900 112px/1.05 "Montserrat", Arial, sans-serif; color: #fff; text-transform: uppercase;
+    text-shadow: 7.0px 0.0px 0 #000, 6.5px 2.7px 0 #000, 4.9px 4.9px 0 #000, 2.7px 6.5px 0 #000, 0.0px 7.0px 0 #000, -2.7px 6.5px 0 #000, -4.9px 4.9px 0 #000, -6.5px 2.7px 0 #000, -7.0px 0.0px 0 #000, -6.5px -2.7px 0 #000, -4.9px -4.9px 0 #000, -2.7px -6.5px 0 #000, -0.0px -7.0px 0 #000, 2.7px -6.5px 0 #000, 4.9px -4.9px 0 #000, 6.5px -2.7px 0 #000, 0 8px 22px rgba(0,0,0,.5); }
+</style>
+</head>
+<body>
+<div id="root" class="s-__STYLE__" data-composition-id="captions" data-start="0" data-duration="__DURATION__" data-fps="30" data-width="1080" data-height="1920">
+  __BG__
+  <div id="stage"></div>
+</div>
+<script>
+  var STYLE = "__STYLE__";
+  var DURATION = __DURATION__;
+  var ACCENT = "__ACCENT__";
+  var WORDS = __WORDS__;  // [{w, s, e}]
+  var MAX = { klasika: 30, pill: 26, highlight: 20, pop: 14 }[STYLE];   // max characters per group
+  var MAXW = { klasika: 7, pill: 5, highlight: 4, pop: 3 }[STYLE];      // max words per group
+  var GAP = 0.35;
+
+  function groups(words) {
+    var out = [], cur = [];
+    function len(ws) { return ws.map(function (x) { return x.w; }).join(" ").length; }
+    words.forEach(function (w, i) {
+      if (cur.length && (len(cur.concat([w])) > MAX || cur.length >= MAXW || w.s - cur[cur.length - 1].e > GAP)) { out.push(cur); cur = []; }
+      cur.push(w);
+      if (/[.!?]$/.test(w.w) || (/[,;:]$/.test(w.w) && len(cur) >= MAX * 0.55)) { out.push(cur); cur = []; }
+    });
+    if (cur.length) out.push(cur);
+    return out;
+  }
+  function lines(ws) {  // split into 1-2 balanced lines (pop: always 1 word per line)
+    var t = ws.map(function (x) { return x.w; }).join(" ");
+    if (t.length <= MAX * 0.6 || ws.length < 2) return [ws];
+    var best = 1e9, bi = 1;
+    for (var i = 1; i < ws.length; i++) {
+      var a = ws.slice(0, i).map(function (x) { return x.w; }).join(" ").length, b = ws.slice(i).map(function (x) { return x.w; }).join(" ").length;
+      if (Math.abs(a - b) < best) { best = Math.abs(a - b); bi = i; }
+    }
+    return [ws.slice(0, bi), ws.slice(bi)];
+  }
+
+  // shrink a group's font when its longest line would overflow the band (long Slovene words: "enainštiridesetimi")
+  var BAND = 860, CHARW = { klasika: 0.62, pill: 0.6, highlight: 0.74, pop: 0.72 }[STYLE];
+  function fit(el, g) {
+    var base = parseFloat(getComputedStyle(el).fontSize) || 80;
+    var longest = Math.max.apply(null, lines(g).map(function (ln) { return ln.map(function (w) { return w.w; }).join(" ").length; }));
+    var need = longest * base * CHARW;
+    if (need > BAND) el.style.fontSize = Math.floor(base * BAND / need) + "px";
+  }
+  var G = groups(WORDS), stage = document.getElementById("stage");
+  G.forEach(function (g, gi) {
+    var el = document.createElement("div"); el.className = "group"; el.id = "g" + gi;
+    var holder = el;
+    if (STYLE === "pill") { holder = document.createElement("div"); holder.className = "pill"; el.appendChild(holder); }
+    lines(g).forEach(function (ln) {
+      var l = document.createElement("div"); l.className = "line";
+      ln.forEach(function (w) {
+        var s = document.createElement("span"); s.className = "w"; s.id = "w" + gi + "_" + g.indexOf(w); s.textContent = w.w;
+        l.appendChild(s);
+      });
+      holder.appendChild(l);
+    });
+    stage.appendChild(el);
+    fit(el, g);
+  });
+
+  window.__timelines = window.__timelines || {};
+  var tl = gsap.timeline({ paused: true });
+  var bg = document.getElementById("bg");
+  if (bg) tl.fromTo(bg, { scale: 1.0 }, { scale: 1.12, duration: DURATION, ease: "none" }, 0);
+  G.forEach(function (g, gi) {
+    var el = document.getElementById("g" + gi), next = G[gi + 1];
+    var start = Math.max(0, g[0].s - 0.05);
+    var end = next ? Math.min(next[0].s - 0.05, g[g.length - 1].e + 0.6) : Math.min(DURATION, g[g.length - 1].e + 0.8);
+    end = Math.max(end, start + 0.3);
+    tl.set(el, { opacity: 1 }, start);
+    if (STYLE === "pop") tl.fromTo(el, { scale: 0.86 }, { scale: 1, duration: 0.12, ease: "back.out(3)", immediateRender: false }, start);
+    else tl.fromTo(el, { y: 14 }, { y: 0, duration: 0.12, ease: "power2.out", immediateRender: false }, start);
+    tl.set(el, { opacity: 0 }, end);
+    g.forEach(function (w, wi) {
+      var s = document.getElementById("w" + gi + "_" + wi), at = Math.max(start, w.s - 0.04);
+      if (STYLE === "pill") tl.to(s, { color: "#1c1e1d", duration: 0.08, ease: "none" }, at);
+      if (STYLE === "highlight") {
+        tl.set(s, { backgroundColor: ACCENT }, at);
+        tl.set(s, { backgroundColor: "rgba(0,0,0,0)" }, Math.min(end, (g[wi + 1] ? g[wi + 1].s : w.e + 0.3) - 0.04));
+      }
+      if (STYLE === "pop") {
+        tl.set(s, { color: ACCENT }, at);
+        tl.set(s, { color: "#ffffff" }, Math.min(end, (g[wi + 1] ? g[wi + 1].s : w.e + 0.3) - 0.04));
+      }
+    });
+  });
+  window.__timelines["captions"] = tl;
+  tl.seek(0);
+</script>
+</body>
+</html>

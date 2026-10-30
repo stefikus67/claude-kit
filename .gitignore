@@ -1,0 +1,11 @@
+.venv/
+node_modules/
+__pycache__/
+*.log
+tmp/
+tools/sl-stt/models/*.nemo
+tools/sl-stt/models/*.part
+tools/sl-stt/models/hf/
+tools/sl-stt/models/rsdo-pc-3.6/
+tools/sl-stt/test/out/
+reels/

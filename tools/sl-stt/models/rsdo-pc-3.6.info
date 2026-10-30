@@ -1,0 +1,8 @@
+language_code: sl-SI
+domain: GEN
+version: nemo-3.6
+info:
+  build: 20220422-2010
+  framework: nemo:nlp:tc:pc
+  notes:
+    tag: SloBerta_streaming_keep_sent_20220422

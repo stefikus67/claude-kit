@@ -1,0 +1,26 @@
+language_code: sl-SI
+domain: GEN
+version: nemo-2.0
+info:
+  build: 20221201-1833
+  am:
+    framework: nemo:conformer:ctc:bpe
+    run: 20221127-1131
+    val_wer: 0.0429-epoch=198
+    dataset:
+      src: v2.0
+      train: 509013r:630.38h
+      validation: 13353r:16.48h
+      content:
+      - artur-1.0
+features:
+  transcription:
+    casing: lowercase
+    form: written
+  remap:
+    ▩: <spn>
+    □: <nsn>
+    ▲: <unk>
+    ◌: <anon>
+    ◇: <laugh>
+    ▷: <pause>
